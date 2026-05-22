@@ -78,6 +78,8 @@ def test_get_batch():
     x, y = get_batch(test_data)
     assert x.size() == (batch_size, block_size)
     assert y.size() == (batch_size, block_size)
+    assert x.dtype == torch.long
+    assert y.dtype == torch.long
     # Check that y is the next-token target for x
     for i in range(batch_size):
         for j in range(block_size - 1):
