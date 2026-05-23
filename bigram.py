@@ -2,6 +2,7 @@ from pathlib import Path
 import random
 import numpy as np
 import torch
+import torch.nn.functional as F
 import math
 
 file = Path("input.txt")
@@ -40,12 +41,31 @@ def get_batch(split: torch.Tensor):
     x_rows = []
     y_rows = []
     for i in range(batch_size):
-        greatest_start = len(split) - block_size -1
+        greatest_start = len(split) - block_size - 1
         start = random.randint(0, greatest_start)
-        x_row = split[start: start + block_size]
-        y_row = split[start+1:start +block_size + 1]
+        x_row = split[start : start + block_size]
+        y_row = split[start + 1 : start + block_size + 1]
         x_rows.append(x_row)
         y_rows.append(y_row)
     x_row = torch.stack(x_rows)
     y_row = torch.stack(y_rows)
     return (x_row, y_row)
+
+
+class BigramModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embeddings = torch.nn.Embedding(vocab_size, vocab_size)
+
+    def forward(
+        self,
+        idx: torch.Tensor,
+        targets: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        logits = self.embeddings(idx)
+        logits_for_loss = logits.flatten(0, 1)
+        if targets is None:
+            return (None, logits)
+        targets_for_loss = targets.flatten()
+        loss = F.cross_entropy(logits_for_loss, targets_for_loss)
+        return loss, logits

@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from bigram import (
+    BigramModel,
     stoi,
     itos,
     encode,
@@ -84,3 +85,19 @@ def test_get_batch():
     for i in range(batch_size):
         for j in range(block_size - 1):
             assert y[i, j] == x[i, j + 1]
+
+
+def test_bigram_model():
+    model = BigramModel()
+    idx, targets = get_batch(test_data)
+    loss, logits = model.forward(idx, targets)
+    assert loss.ndim == 0
+    assert logits.size() == (batch_size, block_size, vocab_size)
+
+
+def test_forward_returns_loss_asnone_whe_targets_notprovided():
+    model = BigramModel()
+    idx, _targets = get_batch(test_data)
+    loss, logits = model.forward(idx)
+    assert loss is None
+    assert logits.size() == (batch_size, block_size, vocab_size)

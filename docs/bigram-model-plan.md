@@ -167,6 +167,10 @@ Questions to answer:
 - What does one row of the embedding table mean?
 - Why does cross-entropy need logits reshaped before loss computation?
 
+Reference:
+
+- [Bigram: Logits, Softmax, and Cross-Entropy](bigram-loss-and-softmax.md)
+
 ## Step 6: Train the Model
 
 Tasks:
