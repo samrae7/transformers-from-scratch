@@ -221,6 +221,16 @@ Questions to answer:
 - Why is generated output different across runs?
 - What does the bigram model fail to capture?
 
+Concepts to revisit next:
+
+- Why cross-entropy loss can be interpreted through `exp(loss)`.
+- Why `exp(2.47) ~= 11.8` means the model is roughly as uncertain as choosing
+  among about 12 plausible next characters on average.
+- How `torch.multinomial` samples from a probability distribution.
+- How multinomial sampling differs from always taking `argmax`.
+- Why sampling can produce more varied text while `argmax` can get stuck in
+  repetitive loops.
+
 ## Step 8: Write Observations
 
 Add a short note after the milestone covering:

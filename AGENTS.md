@@ -121,6 +121,11 @@ The project should not use:
 The human has around 6 hours per week. The expected project duration is roughly
 12 to 14 weeks.
 
+Canonical roadmap:
+
+- See [docs/roadmap.md](docs/roadmap.md) for the learning milestones, model
+  progression, and comparison points.
+
 High-level phases:
 
 1. Foundations: attention and embeddings.

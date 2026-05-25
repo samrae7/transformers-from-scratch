@@ -95,9 +95,24 @@ def test_bigram_model():
     assert logits.size() == (batch_size, block_size, vocab_size)
 
 
-def test_forward_returns_loss_asnone_whe_targets_notprovided():
+def test_forward_returns_loss_as_none_whe_targets_notprovided():
     model = BigramModel()
     idx, _targets = get_batch(test_data)
     loss, logits = model.forward(idx)
     assert loss is None
     assert logits.size() == (batch_size, block_size, vocab_size)
+
+
+def test_get_next_token():
+    model = BigramModel()
+    start = stoi["\n"]
+    next_token = model._get_next_token(start)
+
+    assert isinstance(next_token, int)
+
+
+def test_generate():
+    model = BigramModel()
+    start_char = "\n"
+    generated = model.generate(start_char, 10)
+    assert len(generated) == 10
