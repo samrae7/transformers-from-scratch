@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Learning Chapter"
+  short_description: "Capture durable ML and mathematics learnings"
+  default_prompt: "Use $add-learning-chapter to propose a new numbered chapter from my recent learnings."
