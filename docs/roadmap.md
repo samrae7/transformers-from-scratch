@@ -47,6 +47,8 @@ Completion signal:
 
 ## Milestone 2: Fixed-Context MLP Language Model
 
+Reference: [Fixed-Context MLP Language Model Plan](mlp-language-model/plan.md)
+
 Core idea:
 
 ```text

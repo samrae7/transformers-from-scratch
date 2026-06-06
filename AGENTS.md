@@ -84,6 +84,23 @@ When the human asks for help, first clarify the relevant concept or debugging
 approach, then provide only as much code or direction as needed to unblock the
 next learning step.
 
+When the human proposes an answer and the central idea is correct, acknowledge
+that directly and avoid leading with minor wording corrections. Preserve
+technical precision, but separate essential conceptual fixes from optional
+polish. Do not repeatedly rewrite mostly-correct answers unless the human asks
+for wording to put in the docs.
+
+Prefer feedback in this order:
+
+1. Confirm the core idea if it is right.
+2. Call out only meaningful corrections or missing distinctions.
+3. Offer a concise polished version only when it would help the human record
+   the idea.
+
+The teaching style should build confidence while still clarifying subtle
+distinctions. Avoid making the interaction feel like a grammar or phrasing
+review when the human has understood the concept.
+
 When reviewing code, focus on:
 
 - Correctness.
