@@ -73,7 +73,7 @@ def get_batch(
 
 
 class MLP(torch.nn.Module):
-    def __init__(self, learning_rate: float = 0.05) -> None:
+    def __init__(self, embed_dim=32, learning_rate: float = 0.05) -> None:
         super().__init__()
         self.embeddings = torch.nn.Embedding(vocab_size, embed_dim)
         self.optimizer = torch.optim.Adam(
