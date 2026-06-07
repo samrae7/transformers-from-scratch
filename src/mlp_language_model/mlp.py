@@ -109,6 +109,7 @@ def train(
 ) -> None:
 
     loss_accum = 0.0
+    recent_losses = []
 
     for iter in range(max_iters):
         idx, targets = get_batch(
@@ -122,20 +123,24 @@ def train(
         model.optimizer.step()
 
         loss_accum += loss.item()
+        recent_losses.append(loss.item())
         if iter % 100 == 0:
             print(
-                f"iter {iter}: batch_loss {loss.item()}, avg_loss {loss_accum / (iter + 1)}"
+                f"iter {iter}: batch_loss {loss.item()}, avg_loss {loss_accum / (iter + 1)}, recent_loss {sum(recent_losses[-100:]) / 100}"
             )
-    # val_loss_accum = 0
-    # val_steps = 100
-    # splits = get_splits(data)
-    # validation_data = splits["validation"]
-    # for iter in range(val_steps):
-    #     idx, targets = get_batch(validation_data)
-    #     val_loss, _ = model.forward(idx, targets)
-    #     val_loss_accum += val_loss
-    # avg_val_loss = val_loss_accum / val_steps
-    # print(f"{avg_val_loss=}")
+    val_loss_accum = 0
+    val_steps = 100
+    splits = get_splits(data)
+    validation_data = splits["validation"]
+    for iter in range(val_steps):
+        idx, targets = get_batch(
+            split=validation_data, batch_size=batch_size, context_size=context_size
+        )
+        val_logits = model(idx)
+        val_loss = F.cross_entropy(val_logits, targets)
+        val_loss_accum += val_loss.item()
+    avg_val_loss = val_loss_accum / val_steps
+    print(f"{avg_val_loss=}")
 
 
 if __name__ == "__main__":
@@ -146,8 +151,11 @@ if __name__ == "__main__":
     train_data = splits["train"]
 
     context_size = 8
+    lr = 0.001
 
-    model = MLP(context_size=context_size, vocab_size=tokenizer.vocab_size)
+    model = MLP(
+        context_size=context_size, vocab_size=tokenizer.vocab_size, learning_rate=lr
+    )
     train(
         model=model, train_data=train_data, batch_size=8, context_size=8, max_iters=5000
     )
