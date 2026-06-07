@@ -79,6 +79,7 @@ class BigramModel(torch.nn.Module):
         if targets is None:
             return (None, logits)
         targets_for_loss = targets.flatten()
+        #  TODO -factor loss out. Forward is normally just logits
         loss = F.cross_entropy(logits_for_loss, targets_for_loss)
         return loss, logits
 

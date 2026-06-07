@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import math
 
-from language_modeling import CharTokenizer
+from language_modeling.tokenizer import CharTokenizer
 
 
 def get_corpus_text():
@@ -15,6 +15,7 @@ def get_corpus_text():
 
 def encode_data(text: str, tokenizer: CharTokenizer) -> torch.Tensor:
     return torch.tensor(tokenizer.encode(text), dtype=torch.long)
+
 
 class DataSplits(TypedDict):
     train: torch.Tensor
@@ -57,15 +58,16 @@ class MLP(torch.nn.Module):
         context_size: int,
         vocab_size: int,
         embed_dim=32,
+        hidden_dim=64,
         learning_rate: float = 0.05,
     ) -> None:
         super().__init__()
         self.embeddings = torch.nn.Embedding(vocab_size, embed_dim)
         #  linear takes in_features, out_features
-        self.hidden = torch.nn.Linear(embed_dim * context_size, vocab_size)
-        self.optimizer = torch.optim.Adam(
-            self.embeddings.parameters(), lr=learning_rate
-        )
+        self.hidden = torch.nn.Linear(embed_dim * context_size, hidden_dim)
+        self.output = torch.nn.Linear(hidden_dim, vocab_size)
+        # any self.paramerers recursively walks any nn.Modules added as a parmeter
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(
         self,
@@ -76,14 +78,9 @@ class MLP(torch.nn.Module):
         # Flatten the N token embeddings into one feature vector per example,
         # allowing the next linear layer to combine information across the context.
         flattened = embeddings.flatten(start_dim=1)
-        hidden = self.hidden(flattened)
-        return hidden
-        # logits_for_loss = embeddings.flatten(0, 1)
-        # if targets is None:
-        #     return (None, embeddings)
-        # targets_for_loss = targets.flatten()
-        # loss = F.cross_entropy(logits_for_loss, targets_for_loss)
-        # return embeddings
+        hidden = torch.tanh(self.hidden(flattened))
+        logits = self.output(hidden)
+        return logits
 
     def _get_next_token(self, token: int) -> int:
         token_tensor = torch.tensor(token)
@@ -93,54 +90,64 @@ class MLP(torch.nn.Module):
         next_token = torch.multinomial(probs, num_samples=1).item()
         return next_token
 
-    def generate(self, start_char: str, length: int) -> int:
+    def generate(self, start_char: str, length: int, tokenizer: CharTokenizer) -> int:
         continuation = ""
-        current = stoi[start_char]
+        current = tokenizer.stoi[start_char]
         for _ in range(length):
             next_token = self._get_next_token(current)
-            continuation += itos[next_token]
+            continuation += tokenizer.itos[next_token]
             current = next_token
         return continuation
 
 
-def train(model: MLP, max_iters: int) -> None:
+def train(
+    model: MLP,
+    train_data: torch.Tensor,
+    batch_size: int,
+    context_size: int,
+    max_iters: int,
+) -> None:
+
     loss_accum = 0.0
-    # idx, targets = get_batch_for_overfit(test_data, 0)
-    # result = decode(idx[0].tolist())
-    # print(f"{result=}")
+
     for iter in range(max_iters):
-        idx, targets = get_batch(train_data)
-        loss, _ = model.forward(idx, targets)
+        idx, targets = get_batch(
+            split=train_data, batch_size=batch_size, context_size=context_size
+        )
+        logits = model(idx)
+        loss = F.cross_entropy(logits, targets)
+
         model.optimizer.zero_grad()
         loss.backward()
         model.optimizer.step()
+
         loss_accum += loss.item()
         if iter % 100 == 0:
             print(
                 f"iter {iter}: batch_loss {loss.item()}, avg_loss {loss_accum / (iter + 1)}"
             )
-    val_loss_accum = 0
-    val_steps = 100
-    splits = get_splits(data)
-    validation_data = splits["validation"]
-    for iter in range(val_steps):
-        idx, targets = get_batch(validation_data)
-        val_loss, _ = model.forward(idx, targets)
-        val_loss_accum += val_loss
-    avg_val_loss = val_loss_accum / val_steps
-    print(f"{avg_val_loss=}")
+    # val_loss_accum = 0
+    # val_steps = 100
+    # splits = get_splits(data)
+    # validation_data = splits["validation"]
+    # for iter in range(val_steps):
+    #     idx, targets = get_batch(validation_data)
+    #     val_loss, _ = model.forward(idx, targets)
+    #     val_loss_accum += val_loss
+    # avg_val_loss = val_loss_accum / val_steps
+    # print(f"{avg_val_loss=}")
 
 
 if __name__ == "__main__":
     text = get_corpus_text()
-    print(f"length of dataset in characters: {len(text)}")
-    print(f"dataset sample:\n{text[:1000]}")
-
     tokenizer = CharTokenizer(text)
-    data = encode_data(text,tokenizer=tokenizer)
-
+    data = encode_data(text, tokenizer=tokenizer)
     splits = get_splits(data)
     train_data = splits["train"]
-    context_size = 4
-    batch_size = 10
-    get_batch(batch_size=batch_size, split=train_data, context_size=4)
+
+    context_size = 8
+
+    model = MLP(context_size=context_size, vocab_size=tokenizer.vocab_size)
+    train(
+        model=model, train_data=train_data, batch_size=8, context_size=8, max_iters=5000
+    )
