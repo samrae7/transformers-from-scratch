@@ -9,5 +9,5 @@ def test_embeddings_have_expected_shape():
     x, _ = get_batch(split=train_data, batch_size=5, context_size=10)
     assert x.size() == (5, 10)
     model = MLP(embed_dim=8)
-    emb = model.embeddings(x)
-    assert emb.size() == (5, 10, 8)
+    emb = model.forward(x)
+    assert emb.size() == (5, 80)

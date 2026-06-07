@@ -52,7 +52,7 @@ def get_splits(data: torch.Tensor) -> DataSplits:
 
 def get_batch(
     split: torch.Tensor, batch_size: int, context_size: int
-) -> tuple[torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     x: previous N tokens when N = context_size. Shape: batch_size, context_size
     y: single next token embedding. Shape: batch_size
@@ -83,15 +83,19 @@ class MLP(torch.nn.Module):
     def forward(
         self,
         idx: torch.Tensor,
-        targets: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
-        logits = self.embeddings(idx)
-        logits_for_loss = logits.flatten(0, 1)
-        if targets is None:
-            return (None, logits)
-        targets_for_loss = targets.flatten()
-        loss = F.cross_entropy(logits_for_loss, targets_for_loss)
-        return loss, logits
+        # targets: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        embeddings = self.embeddings(idx)
+        # Flatten the N token embeddings into one feature vector per example,
+        # allowing the next linear layer to combine information across the context.
+        flattened = embeddings.flatten(start_dim=1)
+        return flattened
+        # logits_for_loss = embeddings.flatten(0, 1)
+        # if targets is None:
+        #     return (None, embeddings)
+        # targets_for_loss = targets.flatten()
+        # loss = F.cross_entropy(logits_for_loss, targets_for_loss)
+        # return embeddings
 
     def _get_next_token(self, token: int) -> int:
         token_tensor = torch.tensor(token)
