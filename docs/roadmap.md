@@ -1,5 +1,27 @@
 # Transformers From Scratch Learning Roadmap
 
+Project started: May 17, 2026.
+
+## Expected Timeline
+
+Available study time:
+
+```text
+3 to 4 hours per week
+```
+
+The project is expected to require roughly 72 to 84 hours, giving an estimated
+duration of:
+
+```text
+18 to 28 weeks
+```
+
+This is a directional estimate rather than a deadline. The project prioritizes
+mechanistic understanding, debugging practice, and controlled experiments over
+finishing each milestone quickly. The RNN and LSTM bridge may move the duration
+toward the upper end of the range.
+
 ## Purpose
 
 This roadmap keeps the project focused on learning sequence modeling from first
@@ -85,10 +107,18 @@ Comparison to bigram:
 - Does increasing context size help?
 - What happens when context size is too small or too large?
 
-## Milestone 3: Optional RNN or LSTM Comparison
+Completion signal:
 
-This milestone is useful for historical and conceptual context, but it should
-stay small. It is optional if it starts delaying attention too much.
+- Training and validation loss are recorded.
+- A generated sample is recorded.
+- The fixed-context limitation can be explained.
+
+## Milestone 3: RNN and LSTM Bridge
+
+This milestone provides the historical and conceptual bridge between
+fixed-context models and attention. Keep it tightly scoped: the goal is to
+understand what transformers replaced, not to build a highly tuned recurrent
+language model.
 
 Core idea:
 
@@ -101,20 +131,70 @@ What this teaches:
 
 - Sequence memory through hidden state.
 - Why recurrent models process tokens one step at a time.
+- How history becomes compressed into an evolving hidden state.
+- How backpropagation through time connects repeated recurrent steps.
 - Why gradients through many time steps can vanish or explode.
-- Why LSTMs and GRUs use gates.
+- Why LSTMs introduce a cell state and learned gates.
+- What direct token-to-token access in attention changes.
 
-Keep it scoped:
+### Step 1: Manual Vanilla RNN
 
-- A tiny vanilla RNN is enough to expose the core idea.
-- An LSTM can be inspected conceptually without becoming a major build target.
-- Avoid turning this into a separate full project.
+Implement one small recurrent cell manually:
+
+```text
+h_t = tanh(W_x x_t + W_h h_{t-1} + b)
+logits_t = W_o h_t + b_o
+```
+
+Include:
+
+- Character embeddings.
+- Explicit hidden-state initialization.
+- A short sequence unrolled in a Python loop.
+- Next-character logits at each time step.
+- Cross-entropy over the sequence.
+- Basic autoregressive generation.
+
+Inspect:
+
+- Hidden-state shapes across time.
+- Why each step depends on the previous step.
+- Gradient norms over a short and a longer unrolled sequence.
+
+### Step 2: Manual LSTM Cell
+
+Implement or closely derive one small LSTM cell without using `nn.LSTM`.
+
+Understand:
+
+- The hidden state `h_t`.
+- The cell state `c_t`.
+- The forget, input, candidate, and output computations.
+- Why the cell-state update has an additive path:
+
+```text
+c_t = f_t * c_{t-1} + i_t * g_t
+h_t = o_t * tanh(c_t)
+```
+
+The LSTM does not need to become a polished or heavily trained model. One
+working cell, shape tests, and a short sequence pass are enough.
 
 Comparison to MLP:
 
 - RNNs can carry state across sequence length.
 - MLPs consume a fixed context window.
-- Both still motivate attention as a way to directly access prior positions.
+- RNNs and LSTMs still process sequence positions serially.
+- Historical information must pass through recurrent state at every step.
+
+Completion signal:
+
+- The vanilla recurrent update can be explained from first principles.
+- Backpropagation through time can be described at a high level.
+- The purpose of each LSTM gate and the cell state can be explained.
+- The limitations of recurrent state motivate direct attention over prior
+  positions.
+- Stop before architecture tuning or a full GRU/LSTM comparison project.
 
 ## Milestone 4: Single-Head Causal Self-Attention
 

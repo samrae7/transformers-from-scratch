@@ -135,8 +135,8 @@ The project should not use:
 
 ## Project Timeline
 
-The human has around 6 hours per week. The expected project duration is roughly
-12 to 14 weeks.
+The human has around 3 to 4 hours per week. The expected project duration is
+roughly 18 to 28 weeks, based on an estimated total scope of 72 to 84 hours.
 
 Canonical roadmap:
 

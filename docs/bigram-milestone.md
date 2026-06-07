@@ -11,14 +11,13 @@ MIUCind: IN y br pathind, th mmy os fen ame\n\nPENurd tay.\nSo whefll llindeinga
 
 - What failure modes appeared.
 
-text os giberrish.
+text is giberrish.
 
 - What worked as expected.
 
-I see a pattern where there are some speaker blocks being inserted, albeit of onlt one character.
+I see a pattern where there are some speaker blocks being inserted, albeit of only one character.
 
 - What was confusing.
-
 
 Stretch goals
 
@@ -36,8 +35,8 @@ Bed he heed furorst Cither
 hed Cirer, ar, wed we Ciren:
 Be we pr, Cirstir he fur, prt fort Cizeerorthed pr an:
 Beeefursthe wear
- focen:
+focen:
 Beny hearororor Citheroce any weny wert pr furt an:
 Beny Cit weny pr, Cizeean:
 Be an:
-Be pr 
+Be pr

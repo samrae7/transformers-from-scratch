@@ -68,6 +68,7 @@ class MLP(torch.nn.Module):
         self.output = torch.nn.Linear(hidden_dim, vocab_size)
         # any self.paramerers recursively walks any nn.Modules added as a parmeter
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        self.context_size = context_size
 
     def forward(
         self,
@@ -83,27 +84,35 @@ class MLP(torch.nn.Module):
         return logits
 
     def _get_next_token(self, tokens: list[int]) -> int:
-        token_tensor = torch.tensor(tokens).unsqueeze(dim=0)
-        logits = self.forward(token_tensor)
+        device = self.embeddings.weight.device
+        x = torch.tensor([tokens], dtype=torch.long, device=device)
+        logits = self(x)
         probs = torch.softmax(logits, dim=-1)
         next_token = torch.multinomial(probs[0], num_samples=1).item()
         return next_token
 
+    # disables gradient tracking -> less mem usage, faster
+    @torch.no_grad()
     def generate(
-        self, start_char: str, context_size: int, length: int, tokenizer: CharTokenizer
+        self,
+        prompt: str,
+        length: int,
+        tokenizer: CharTokenizer,
+        padding_char="\n",
     ) -> int:
-        continuation = [start_char]
+        # If we had eg, dropout for training, this would disable it for inference
+        self.eval()
+
+        generated = tokenizer.encode(prompt)
+        padding_token = tokenizer.stoi[padding_char]
 
         for _ in range(length):
-            if len(continuation) < context_size:
-                padding = ["\n"] * (context_size - len(continuation))
-                current_context = padding + continuation
-            else:
-                current_context = continuation[(-1 * context_size) :]
-            current_context_encoded = tokenizer.encode("".join(current_context))
-            next_token = self._get_next_token(current_context_encoded)
-            continuation.append(tokenizer.decode([next_token]))
-        return "".join(continuation)
+            context = generated[(-1 * self.context_size) :]
+            context = [padding_token] * (self.context_size - len(context)) + context
+
+            next_token = self._get_next_token(context)
+            generated.append(next_token)
+        return tokenizer.decode(generated)
 
 
 def train(
@@ -113,6 +122,7 @@ def train(
     context_size: int,
     max_iters: int,
 ) -> None:
+    model.train()
 
     loss_accum = 0.0
     recent_losses = []
@@ -173,6 +183,6 @@ if __name__ == "__main__":
         max_iters=20000,
     )
     generated = model.generate(
-        "\n", context_size=context_size, length=1000, tokenizer=tokenizer
+        "Wherefore art thou Romeo?", length=1000, tokenizer=tokenizer
     )
     print(f"generated:\n{generated}")
