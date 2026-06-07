@@ -1,16 +1,16 @@
-from bigram.bigram import decode, encode, itos, stoi, vocab_size
+from bigram.bigram import tokenizer
 
 
 def test_stoi_and_itos_are_inverses():
-    for char, idx in stoi.items():
-        assert itos[idx] == char
+    for char, idx in tokenizer.stoi.items():
+        assert tokenizer.itos[idx] == char
 
 
 def test_encode_decode_round_trip():
     sample = "First Citizen:\n"
 
-    encoded = encode(sample)
-    decoded = decode(encoded)
+    encoded = tokenizer.encode(sample)
+    decoded = tokenizer.decode(encoded)
 
     assert decoded == sample
 
@@ -18,21 +18,21 @@ def test_encode_decode_round_trip():
 def test_encode_returns_integer_token_ids():
     sample = "hello"
 
-    encoded = encode(sample)
+    encoded = tokenizer.encode(sample)
 
     assert all(isinstance(idx, int) for idx in encoded)
-    assert all(0 <= idx < vocab_size for idx in encoded)
+    assert all(0 <= idx < tokenizer.vocab_size for idx in encoded)
 
 
 def test_decode_returns_string():
     ids = [
-        stoi["h"],
-        stoi["e"],
-        stoi["l"],
-        stoi["l"],
-        stoi["o"],
+        tokenizer.stoi["h"],
+        tokenizer.stoi["e"],
+        tokenizer.stoi["l"],
+        tokenizer.stoi["l"],
+        tokenizer.stoi["o"],
     ]
 
-    decoded = decode(ids)
+    decoded = tokenizer.decode(ids)
 
     assert decoded == "hello"

@@ -1,29 +1,22 @@
 from pathlib import Path
 import random
-import numpy as np
 import torch
 import torch.nn.functional as F
 import math
+
+from language_modeling import CharTokenizer
 
 file = Path("input.txt")
 text = file.read_text()
 print(f"length of dataset in characters: {len(text)}")
 print(f"dataset sample:\n{text[:1000]}")
 
-chars = sorted(set(text))
-vocab_size = np.unique(chars).size
-
-stoi = {char: i for i, char in enumerate(chars)}
-
-itos = {i: char for char, i in stoi.items()}
-
-
-def encode(text: str) -> list[int]:
-    return [stoi[ch] for ch in text]
-
-
-def decode(ids: list[int]) -> str:
-    return "".join([itos[i] for i in ids])
+tokenizer = CharTokenizer(text)
+vocab_size = tokenizer.vocab_size
+stoi = tokenizer.stoi
+itos = tokenizer.itos
+encode = tokenizer.encode
+decode = tokenizer.decode
 
 
 # embedding layers and cross-entropy targets expect integer class indices as long tensors.
@@ -65,7 +58,11 @@ def get_batch(split: torch.Tensor):
 
 
 class BigramModel(torch.nn.Module):
-    def __init__(self, learning_rate: float = 0.05) -> None:
+    def __init__(
+        self,
+        vocab_size: int = vocab_size,
+        learning_rate: float = 0.05,
+    ) -> None:
         super().__init__()
         self.embeddings = torch.nn.Embedding(vocab_size, vocab_size)
         self.optimizer = torch.optim.Adam(

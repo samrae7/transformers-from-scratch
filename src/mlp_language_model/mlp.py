@@ -1,30 +1,11 @@
 from pathlib import Path
 import random
 from typing import TypedDict
-import numpy as np
 import torch
 import torch.nn.functional as F
 import math
 
-file = Path("input.txt")
-text = file.read_text()
-print(f"length of dataset in characters: {len(text)}")
-print(f"dataset sample:\n{text[:1000]}")
-
-chars = sorted(set(text))
-vocab_size = np.unique(chars).size
-
-stoi = {char: i for i, char in enumerate(chars)}
-
-itos = {i: char for char, i in stoi.items()}
-
-
-def encode(text: str) -> list[int]:
-    return [stoi[ch] for ch in text]
-
-
-def decode(ids: list[int]) -> str:
-    return "".join([itos[i] for i in ids])
+from language_modeling import CharTokenizer
 
 
 def get_corpus_text():
@@ -32,10 +13,8 @@ def get_corpus_text():
     return file.read_text()
 
 
-def get_data():
-    text = get_corpus_text()
-    return torch.tensor(encode(text), dtype=torch.long)
-
+def encode_data(text: str, tokenizer: CharTokenizer) -> torch.Tensor:
+    return torch.tensor(tokenizer.encode(text), dtype=torch.long)
 
 class DataSplits(TypedDict):
     train: torch.Tensor
@@ -73,9 +52,17 @@ def get_batch(
 
 
 class MLP(torch.nn.Module):
-    def __init__(self, embed_dim=32, learning_rate: float = 0.05) -> None:
+    def __init__(
+        self,
+        context_size: int,
+        vocab_size: int,
+        embed_dim=32,
+        learning_rate: float = 0.05,
+    ) -> None:
         super().__init__()
         self.embeddings = torch.nn.Embedding(vocab_size, embed_dim)
+        #  linear takes in_features, out_features
+        self.hidden = torch.nn.Linear(embed_dim * context_size, vocab_size)
         self.optimizer = torch.optim.Adam(
             self.embeddings.parameters(), lr=learning_rate
         )
@@ -89,7 +76,8 @@ class MLP(torch.nn.Module):
         # Flatten the N token embeddings into one feature vector per example,
         # allowing the next linear layer to combine information across the context.
         flattened = embeddings.flatten(start_dim=1)
-        return flattened
+        hidden = self.hidden(flattened)
+        return hidden
         # logits_for_loss = embeddings.flatten(0, 1)
         # if targets is None:
         #     return (None, embeddings)
@@ -144,21 +132,15 @@ def train(model: MLP, max_iters: int) -> None:
 
 
 if __name__ == "__main__":
-    data = torch.tensor(encode(text), dtype=torch.long)
+    text = get_corpus_text()
+    print(f"length of dataset in characters: {len(text)}")
+    print(f"dataset sample:\n{text[:1000]}")
+
+    tokenizer = CharTokenizer(text)
+    data = encode_data(text,tokenizer=tokenizer)
 
     splits = get_splits(data)
     train_data = splits["train"]
     context_size = 4
     batch_size = 10
     get_batch(batch_size=batch_size, split=train_data, context_size=4)
-    # model = BigramModel()
-    # before_training = model.generate("\n", 500)
-    # print(f"{before_training=}")
-
-    # train(model, 5000)
-    # generated = model.generate("\n", 500)
-    # print(f"{generated=}")
-
-    # print(model.generate("T", 100))
-    # print(model.generate(" ", 100))
-    # print(model.generate("e", 100))
