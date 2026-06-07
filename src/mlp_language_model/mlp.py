@@ -82,22 +82,28 @@ class MLP(torch.nn.Module):
         logits = self.output(hidden)
         return logits
 
-    def _get_next_token(self, token: int) -> int:
-        token_tensor = torch.tensor(token)
-        logits = self.embeddings(token_tensor)
-        softmax = torch.nn.Softmax(dim=0)
-        probs = softmax(logits)
-        next_token = torch.multinomial(probs, num_samples=1).item()
+    def _get_next_token(self, tokens: list[int]) -> int:
+        token_tensor = torch.tensor(tokens).unsqueeze(dim=0)
+        logits = self.forward(token_tensor)
+        probs = torch.softmax(logits, dim=-1)
+        next_token = torch.multinomial(probs[0], num_samples=1).item()
         return next_token
 
-    def generate(self, start_char: str, length: int, tokenizer: CharTokenizer) -> int:
-        continuation = ""
-        current = tokenizer.stoi[start_char]
+    def generate(
+        self, start_char: str, context_size: int, length: int, tokenizer: CharTokenizer
+    ) -> int:
+        continuation = [start_char]
+
         for _ in range(length):
-            next_token = self._get_next_token(current)
-            continuation += tokenizer.itos[next_token]
-            current = next_token
-        return continuation
+            if len(continuation) < context_size:
+                padding = ["\n"] * (context_size - len(continuation))
+                current_context = padding + continuation
+            else:
+                current_context = continuation[(-1 * context_size) :]
+            current_context_encoded = tokenizer.encode("".join(current_context))
+            next_token = self._get_next_token(current_context_encoded)
+            continuation.append(tokenizer.decode([next_token]))
+        return "".join(continuation)
 
 
 def train(
@@ -154,8 +160,19 @@ if __name__ == "__main__":
     lr = 0.001
 
     model = MLP(
-        context_size=context_size, vocab_size=tokenizer.vocab_size, learning_rate=lr
+        context_size=context_size,
+        vocab_size=tokenizer.vocab_size,
+        learning_rate=lr,
+        hidden_dim=128,
     )
     train(
-        model=model, train_data=train_data, batch_size=8, context_size=8, max_iters=5000
+        model=model,
+        train_data=train_data,
+        batch_size=32,
+        context_size=context_size,
+        max_iters=20000,
     )
+    generated = model.generate(
+        "\n", context_size=context_size, length=1000, tokenizer=tokenizer
+    )
+    print(f"generated:\n{generated}")
