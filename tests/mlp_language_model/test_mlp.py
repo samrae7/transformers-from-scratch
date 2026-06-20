@@ -2,8 +2,9 @@ import torch
 import torch.nn.functional as F
 
 from language_modeling.tokenizer import CharTokenizer
+from language_modeling.data import encode_data, get_splits
 
-from mlp_language_model.mlp import MLP, encode_data, get_batch, get_splits
+from mlp_language_model.mlp import MLP, get_batch
 
 text = "abcdefghijklmnopqrstuvwxyz"
 tokenizer = CharTokenizer(text)

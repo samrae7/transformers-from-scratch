@@ -1,13 +1,11 @@
-from pathlib import Path
 import random
 import torch
 import torch.nn.functional as F
 import math
 
-from language_modeling import CharTokenizer
+from language_modeling import CharTokenizer, get_corpus_text
 
-file = Path("input.txt")
-text = file.read_text()
+text = get_corpus_text()
 print(f"length of dataset in characters: {len(text)}")
 print(f"dataset sample:\n{text[:1000]}")
 

@@ -1,7 +1,8 @@
 """Fixed-context MLP batching tests will live here."""
 
 from language_modeling.tokenizer import CharTokenizer
-from mlp_language_model.mlp import encode_data, get_batch, get_splits
+from language_modeling.data import encode_data, get_splits
+from mlp_language_model.mlp import get_batch
 
 
 def test_get_batch():

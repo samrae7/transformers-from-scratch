@@ -1,33 +1,9 @@
-from pathlib import Path
 import random
-from typing import TypedDict
 import torch
 import torch.nn.functional as F
-import math
 
+from language_modeling.data import encode_data, get_corpus_text, get_splits
 from language_modeling.tokenizer import CharTokenizer
-
-
-def get_corpus_text():
-    file = Path("input.txt")
-    return file.read_text()
-
-
-def encode_data(text: str, tokenizer: CharTokenizer) -> torch.Tensor:
-    return torch.tensor(tokenizer.encode(text), dtype=torch.long)
-
-
-class DataSplits(TypedDict):
-    train: torch.Tensor
-    validation: torch.Tensor
-
-
-def get_splits(data: torch.Tensor) -> DataSplits:
-    data_length = data.size()[0]
-    split_idx = math.floor(data_length * 90 / 100)
-    train_data = data[:split_idx]
-    validation_data = data[split_idx:]
-    return {"train": train_data, "validation": validation_data}
 
 
 def get_batch(
