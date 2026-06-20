@@ -115,6 +115,8 @@ Completion signal:
 
 ## Milestone 3: RNN and LSTM Bridge
 
+Reference: [RNN and LSTM Language Model Plan](rnn-language-model/plan.md)
+
 This milestone provides the historical and conceptual bridge between
 fixed-context models and attention. Keep it tightly scoped: the goal is to
 understand what transformers replaced, not to build a highly tuned recurrent
