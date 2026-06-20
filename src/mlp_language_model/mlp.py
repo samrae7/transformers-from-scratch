@@ -35,15 +35,12 @@ class MLP(torch.nn.Module):
         vocab_size: int,
         embed_dim=32,
         hidden_dim=64,
-        learning_rate: float = 0.05,
     ) -> None:
         super().__init__()
         self.embeddings = torch.nn.Embedding(vocab_size, embed_dim)
         #  linear takes in_features, out_features
         self.hidden = torch.nn.Linear(embed_dim * context_size, hidden_dim)
         self.output = torch.nn.Linear(hidden_dim, vocab_size)
-        # any self.paramerers recursively walks any nn.Modules added as a parmeter
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         self.context_size = context_size
 
     def forward(
@@ -94,6 +91,7 @@ class MLP(torch.nn.Module):
 def train(
     model: MLP,
     train_data: torch.Tensor,
+    optimizer: torch.optim.Optimizer,
     batch_size: int,
     context_size: int,
     max_iters: int,
@@ -110,9 +108,9 @@ def train(
         logits = model(idx)
         loss = F.cross_entropy(logits, targets)
 
-        model.optimizer.zero_grad()
+        optimizer.zero_grad()
         loss.backward()
-        model.optimizer.step()
+        optimizer.step()
 
         loss_accum += loss.item()
         recent_losses.append(loss.item())
@@ -148,15 +146,16 @@ if __name__ == "__main__":
     model = MLP(
         context_size=context_size,
         vocab_size=tokenizer.vocab_size,
-        learning_rate=lr,
         hidden_dim=128,
     )
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     train(
         model=model,
         train_data=train_data,
         batch_size=32,
         context_size=context_size,
         max_iters=20000,
+        optimizer=optimizer,
     )
     generated = model.generate(
         "Wherefore art thou Romeo?", length=1000, tokenizer=tokenizer
