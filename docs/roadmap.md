@@ -24,6 +24,9 @@ toward the upper end of the range.
 
 ## Purpose
 
+For a contents-style view of the full path and current status, see
+[Learning Journey Overview](learning-journey.md).
+
 This roadmap keeps the project focused on learning sequence modeling from first
 principles. The goal is not to reach a transformer as quickly as possible. The
 goal is to understand what each modeling step adds, what failure modes appear,
