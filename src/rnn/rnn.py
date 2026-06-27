@@ -1,6 +1,7 @@
 import torch
 import random
 from torch import nn
+import torch.nn.functional as F
 
 from language_modeling.data import encode_data, get_corpus_text, get_splits
 from language_modeling.tokenizer import CharTokenizer
@@ -69,5 +70,102 @@ class RNN(nn.Module):
         logits = self.hidden_to_output(hidden_states)
         return logits
 
+    @torch.no_grad()
+    def generate(
+        self, prompt: str, length: int, tokenizer: CharTokenizer, padding_char="\n"
+    ):
+        self.eval()
+        encoded = encode_data(prompt, tokenizer)
+        for _ in range(length):
+            logits = self(encoded.unsqueeze(dim=0))
+            last_logits = logits[:, -1, :]
+            probs = torch.softmax(last_logits, dim=-1)
+            next_token = torch.multinomial(probs[0], num_samples=1)
+            encoded = torch.cat((encoded, next_token))
+        generated = tokenizer.decode(encoded.tolist())
+        return generated
+
     def _init_hidden(self, batch_size: int, device: torch.device):
         return torch.zeros((batch_size, self.hidden_dim), device=device)
+
+
+def train(
+    model: RNN,
+    train_data: torch.Tensor,
+    optimizer: torch.optim.Optimizer,
+    batch_size: int,
+    sequence_length: int,
+    max_iters: int,
+    validation_data: torch.Tensor,
+) -> None:
+    model.train()
+
+    loss_accum = 0.0
+    recent_losses = []
+
+    for iter in range(max_iters):
+        idx, targets = get_batch(
+            split=train_data, batch_size=batch_size, sequence_length=sequence_length
+        )
+        logits = model(idx)
+        logits = logits.flatten(0, 1)
+        targets = targets.flatten(0, 1)
+        loss = F.cross_entropy(logits, targets)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        loss_accum += loss.item()
+        recent_losses.append(loss.item())
+        if iter % 100 == 0:
+            print(
+                f"iter {iter}: batch_loss {loss.item()}, avg_loss {loss_accum / (iter + 1)}, recent_loss {sum(recent_losses[-100:]) / 100}"
+            )
+    val_loss_accum = 0
+    val_steps = 100
+    for iter in range(val_steps):
+        idx, targets = get_batch(
+            split=validation_data,
+            batch_size=batch_size,
+            sequence_length=sequence_length,
+        )
+        val_logits = model(idx)
+        val_logits = val_logits.flatten(0, 1)
+        targets = targets.flatten(0, 1)
+        val_loss = F.cross_entropy(val_logits, targets)
+        val_loss_accum += val_loss.item()
+    avg_val_loss = val_loss_accum / val_steps
+    print(f"{avg_val_loss=}")
+
+
+if __name__ == "__main__":
+    text = get_corpus_text()
+    tokenizer = CharTokenizer(text)
+    data = encode_data(text, tokenizer=tokenizer)
+    splits = get_splits(data)
+    train_data = splits["train"]
+    validation_data = splits["validation"]
+
+    sequence_length = 8
+    lr = 0.001
+
+    model = RNN(
+        tokenizer=tokenizer,
+        embed_dim=10,
+        hidden_dim=128,
+    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    train(
+        model=model,
+        train_data=train_data,
+        batch_size=32,
+        sequence_length=sequence_length,
+        max_iters=20000,
+        optimizer=optimizer,
+        validation_data=validation_data,
+    )
+    generated = model.generate(
+        "Wherefore art thou Romeo?", length=1000, tokenizer=tokenizer
+    )
+    print(f"generated:\n{generated}")

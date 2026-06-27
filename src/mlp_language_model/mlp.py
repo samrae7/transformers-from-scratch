@@ -72,7 +72,7 @@ class MLP(torch.nn.Module):
         length: int,
         tokenizer: CharTokenizer,
         padding_char="\n",
-    ) -> int:
+    ) -> str:
         # If we had eg, dropout for training, this would disable it for inference
         self.eval()
 
