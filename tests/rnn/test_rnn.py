@@ -19,5 +19,6 @@ def test_rnn_logits():
 
     model = RNN(tokenizer=tokenizer, embed_dim=emb_dim, hidden_dim=hidden_dim)
 
-    logits = model(x)
+    logits, hidden = model(x)
     assert logits.shape == (batch_size, sequence_length, tokenizer.vocab_size)
+    assert hidden.shape == (batch_size, hidden_dim)
