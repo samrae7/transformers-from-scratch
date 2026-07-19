@@ -1,41 +1,10 @@
 import torch
-import random
 from torch import nn
 import torch.nn.functional as F
 
 from language_modeling.data import encode_data, get_corpus_text, get_splits
 from language_modeling.tokenizer import CharTokenizer
-
-
-def get_batch(
-    split: torch.Tensor, batch_size: int = 5, sequence_length: int = 10
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Output tuple:
-    x: input sequence. Shape: batch_size, sequence_length
-    y: target sequence (same as x but shifted to the left): Shape: batch_size, sequence_length
-    """
-    x = []
-    y = []
-    greatest_start_idx = len(split) - sequence_length - 1
-    for _ in range(batch_size):
-        start_idx = random.randint(0, greatest_start_idx)
-        end_idx = start_idx + sequence_length
-        x_row = split[start_idx:end_idx]
-        y_row = split[start_idx + 1 : end_idx + 1]
-        x.append(x_row)
-        y.append(y_row)
-    x = torch.stack(x)
-    y = torch.stack(y)
-    return x, y
-
-
-if __name__ == "__main__":
-    text = get_corpus_text()
-    tokenizer = CharTokenizer(text)
-    data = encode_data(text, tokenizer=tokenizer)
-    splits = get_splits(data)
-    train_data = splits["train"]
+from rnn.data import get_batch
 
 
 class RNN(nn.Module):
@@ -108,6 +77,17 @@ class RNN(nn.Module):
     def _init_hidden(self, batch_size: int, device: torch.device):
         return torch.zeros((batch_size, self.hidden_dim), device=device)
 
+    def get_total_gradient_norm(self):
+        norm = 0.0
+        for p in self.parameters():
+            if p.grad is None:
+                continue
+            param_grad_norm = p.grad.norm(2)
+            # Each tensor norm already includes a square root, so square it
+            # before combining all parameter gradients into one total L2 norm.
+            norm += param_grad_norm.item() ** 2
+        return norm**0.5
+
 
 def train(
     model: RNN,
@@ -120,8 +100,8 @@ def train(
 ) -> None:
     model.train()
 
-    loss_accum = 0.0
     recent_losses = []
+    recent_grad_norms = []
 
     for iter in range(max_iters):
         idx, targets = get_batch(
@@ -134,15 +114,22 @@ def train(
 
         optimizer.zero_grad()
         loss.backward()
-        # TODO: look up gradient clpping
+        grad_norm = model.get_total_gradient_norm()
+        recent_grad_norms.append(grad_norm)
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
 
-        loss_accum += loss.item()
         recent_losses.append(loss.item())
         if iter % 100 == 0:
+            losses = recent_losses[-100:]
+            grad_norms = recent_grad_norms[-100:]
+
             print(
-                f"iter {iter}: batch_loss {loss.item()}, avg_loss {loss_accum / (iter + 1)}, recent_loss {sum(recent_losses[-100:]) / 100}"
+                f"iter {iter}: "
+                f"loss_mean={sum(losses) / len(losses):.4f}, "
+                f"loss_max={max(losses):.4f}, "
+                f"grad_norm_mean={sum(grad_norms) / len(grad_norms):.4f}, "
+                f"grad_norm_max={max(grad_norms):.4f}"
             )
     val_loss_accum = 0
     val_steps = 100
@@ -188,6 +175,9 @@ if __name__ == "__main__":
         validation_data=validation_data,
     )
     generated = model.generate(
-        "Wherefore art thou Romeo?", length=1000, tokenizer=tokenizer, temperature=0.8
+        "Wherefore art thou Romeo?",
+        length=1000,
+        tokenizer=tokenizer,
+        temperature=0.8,
     )
     print(f"generated:\n{generated}")

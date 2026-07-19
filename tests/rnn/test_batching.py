@@ -2,7 +2,7 @@ import torch
 
 from language_modeling.tokenizer import CharTokenizer
 from language_modeling.data import encode_data, get_splits
-from rnn.rnn import get_batch
+from rnn.data import get_batch
 
 
 def test_get_batch():
