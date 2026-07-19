@@ -19,9 +19,16 @@ def test_lstm():
     x_t = torch.randn(batch_size, embed_dim)
 
     # h_t, c_t = cell(x_t, h_prev, c_prev)
-    f_t = cell._compute_gates(x_t, h_prev)
+    f_t, i_t, g_t, o_t = cell._compute_gates(x_t, h_prev)
     assert f_t.shape == (batch_size, hidden_dim)
+    assert i_t.shape == (batch_size, hidden_dim)
+    assert g_t.shape == (batch_size, hidden_dim)
+    assert o_t.shape == (batch_size, hidden_dim)
+
     assert torch.all((0 <= f_t) & (f_t <= 1))
+    assert torch.all((0 <= i_t) & (i_t <= 1))
+    assert torch.all((-1 <= g_t) & (g_t <= 1))
+    assert torch.all((0 <= o_t) & (o_t <= 1))
 
 
 # Inputs:
