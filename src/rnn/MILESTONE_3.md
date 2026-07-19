@@ -206,6 +206,39 @@ gradient_clip_max_norm = 1.0
 
 Do not tune many variables at once.
 
+### Observation: sequence_length = 128, clipping off
+
+Over 500 iterations, this run did not show exploding gradients.
+
+```text
+iter 0:   loss_mean=1.7892, loss_max=1.7892, grad_norm_mean=0.2322, grad_norm_max=0.2322
+iter 100: loss_mean=1.8112, loss_max=1.9055, grad_norm_mean=0.2192, grad_norm_max=0.2448
+iter 200: loss_mean=1.7918, loss_max=1.8729, grad_norm_mean=0.2274, grad_norm_max=0.2655
+iter 300: loss_mean=1.7780, loss_max=1.8655, grad_norm_mean=0.2335, grad_norm_max=0.2696
+iter 400: loss_mean=1.7690, loss_max=1.8337, grad_norm_mean=0.2325, grad_norm_max=0.2695
+avg_val_loss=1.8664
+```
+
+The gradient norm stayed tightly bounded:
+
+```text
+grad_norm_mean: roughly 0.22 to 0.23
+grad_norm_max: below 0.27
+```
+
+The loss also stayed stable:
+
+```text
+loss_mean: roughly 1.81 down to 1.77
+loss_max: below 1.91
+```
+
+This is useful evidence that the current RNN setup can train stably at this
+sequence length without clipping. It does not mean vanilla RNNs cannot have
+exploding gradients; it means this specific combination of sequence length,
+model size, optimizer, learning rate, initialization, and data did not produce
+that failure mode in this run.
+
 ## Where LSTM Fits
 
 Do not include the LSTM implementation in this chapter.
