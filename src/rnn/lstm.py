@@ -22,4 +22,7 @@ class LSTMCell(nn.Module):
         return f_t, i_t, g_t, o_t
 
     def forward(self, x_t, h_prev, c_prev):
-        return x_t
+        f_t, i_t, g_t, o_t = self._compute_gates(x_t, h_prev)
+        c_t = f_t * c_prev + i_t * g_t
+        h_t = torch.tanh(c_t) * o_t
+        return h_t, c_t

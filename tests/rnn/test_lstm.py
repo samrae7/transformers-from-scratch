@@ -7,7 +7,7 @@ from rnn.lstm import LSTMCell
 
 
 # x_t, h_prev, c_prev  ->  h_t, c_t
-def test_lstm():
+def test_gates():
     batch_size = 5
     hidden_dim = 32
     embed_dim = 64
@@ -18,7 +18,6 @@ def test_lstm():
     # c_prev = torch.zeros(batch_size, hidden_dim)
     x_t = torch.randn(batch_size, embed_dim)
 
-    # h_t, c_t = cell(x_t, h_prev, c_prev)
     f_t, i_t, g_t, o_t = cell._compute_gates(x_t, h_prev)
     assert f_t.shape == (batch_size, hidden_dim)
     assert i_t.shape == (batch_size, hidden_dim)
@@ -29,6 +28,39 @@ def test_lstm():
     assert torch.all((0 <= i_t) & (i_t <= 1))
     assert torch.all((-1 <= g_t) & (g_t <= 1))
     assert torch.all((0 <= o_t) & (o_t <= 1))
+
+
+def test_lstm():
+    batch_size = 5
+    hidden_dim = 32
+    embed_dim = 64
+
+    cell = LSTMCell(embed_dim=embed_dim, hidden_dim=hidden_dim)
+    c_prev = torch.zeros(batch_size, hidden_dim)
+    h_prev = torch.zeros(batch_size, hidden_dim)
+    x_t = torch.randn(batch_size, embed_dim)
+    h_t, c_t = cell(x_t, h_prev, c_prev)
+    assert c_t.shape == (batch_size, hidden_dim)
+    assert h_t.shape == (batch_size, hidden_dim)
+
+def test_gradients_reach_cell_params():
+    batch_size = 5
+    hidden_dim = 32
+    embed_dim = 64
+
+    cell = LSTMCell(embed_dim=embed_dim, hidden_dim=hidden_dim)
+    c_prev = torch.randn(batch_size, hidden_dim)
+    h_prev = torch.randn(batch_size, hidden_dim)
+    x_t = torch.randn(batch_size, embed_dim)
+    h_t, c_t = cell(x_t, h_prev, c_prev)
+
+    loss = h_t.square().mean() + c_t.square().mean()
+    loss.backward()
+
+    for name, parameter in cell.named_parameters():
+        assert parameter.grad is not None, name
+        assert torch.any(parameter.grad != 0), name
+
 
 
 # Inputs:
