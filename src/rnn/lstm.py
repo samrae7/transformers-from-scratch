@@ -1,7 +1,10 @@
 from torch import nn
 import torch
+import torch.nn.functional as F
 
+from language_modeling.data import encode_data, get_corpus_text, get_splits
 from language_modeling.tokenizer import CharTokenizer
+from rnn.data import get_batch
 
 
 class LSTMCell(nn.Module):
@@ -62,3 +65,81 @@ class LSTM(nn.Module):
         hidden_states_stack = torch.stack(hidden_states, dim=1)
         logits = self.hidden_to_logits(hidden_states_stack)
         return logits, (h_t, c_t)
+
+
+def train(
+    model: LSTM,
+    batch_size: int,
+    max_iters: int,
+    train_data: torch.Tensor,
+    sequence_length: int,
+    optimizer: torch.optim.Optimizer,
+):
+    model.train()
+    recent_losses = []
+    # recent_grad_norms = []
+    for iter in range(max_iters):
+        x, y = get_batch(
+            split=train_data, batch_size=batch_size, sequence_length=sequence_length
+        )
+        optimizer.zero_grad()
+        logits, _ = model(x)
+        #  calc cross entropy
+        #  logits have shape B,T,V
+        #  cross_entropy take N,C, which means we need to reshape to B*T, V
+        #  shape of targets is B,T, C.E take shape N so we reshape to B * T
+        loss = F.cross_entropy(logits.flatten(0, 1), y.flatten(0, 1))
+
+        loss.backward()
+        # grad_norm = model.get_total_gradient_norm()
+        # recent_grad_norms.append(grad_norm)
+        optimizer.step()
+
+        recent_losses.append(loss.item())
+        if iter % 100 == 0:
+            losses = recent_losses[-100:]
+            # grad_norms = recent_grad_norms[-100:]
+
+            print(
+                f"iter {iter}: "
+                f"loss_mean={sum(losses) / len(losses):.4f}, "
+                f"loss_max={max(losses):.4f}, "
+                # f"grad_norm_mean={sum(grad_norms) / len(grad_norms):.4f}, "
+                # f"grad_norm_max={max(grad_norms):.4f}"
+            )
+
+
+if __name__ == "__main__":
+    text = get_corpus_text()
+    tokenizer = CharTokenizer(text)
+    data = encode_data(text, tokenizer=tokenizer)
+    splits = get_splits(data)
+    train_data = splits["train"]
+    validation_data = splits["validation"]
+
+    sequence_length = 32
+    lr = 0.001
+    embed_dim = 32
+    hidden_dim = 128
+    cell = LSTMCell(embed_dim=embed_dim, hidden_dim=hidden_dim)
+
+    model = LSTM(
+        tokenizer=tokenizer, embed_dim=embed_dim, hidden_dim=hidden_dim, cell=cell
+    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    train(
+        model=model,
+        train_data=train_data,
+        batch_size=32,
+        sequence_length=sequence_length,
+        max_iters=2000,
+        optimizer=optimizer,
+        # validation_data=validation_data,
+    )
+    # generated = model.generate(
+    #     "Wherefore art thou Romeo?",
+    #     length=1000,
+    #     tokenizer=tokenizer,
+    #     temperature=0.8,
+    # )
+    # print(f"generated:\n{generated}")
