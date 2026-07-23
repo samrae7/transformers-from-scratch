@@ -1,9 +1,10 @@
 import torch
+import torch.nn.functional as F
 
 from language_modeling.data import encode_data, get_splits
 from language_modeling.tokenizer import CharTokenizer
 from rnn.data import get_batch
-from rnn.lstm import LSTMCell
+from rnn.lstm import LSTM, LSTMCell
 
 
 # x_t, h_prev, c_prev  ->  h_t, c_t
@@ -43,6 +44,7 @@ def test_lstm():
     assert c_t.shape == (batch_size, hidden_dim)
     assert h_t.shape == (batch_size, hidden_dim)
 
+
 def test_gradients_reach_cell_params():
     batch_size = 5
     hidden_dim = 32
@@ -62,26 +64,63 @@ def test_gradients_reach_cell_params():
         assert torch.any(parameter.grad != 0), name
 
 
+def test_lstm_forward():
+    text = "abcdefghijklmnopqrstuvwxyzfsdfsdfsdfvsfsfsfvsvfsgsdvsvss"
+    tokenizer = CharTokenizer(text)
+    data = encode_data(text, tokenizer)
 
-# Inputs:
+    train_data = get_splits(data)["train"]
+    batch_size = 5
+    sequence_length = 10
+    x, _ = get_batch(
+        split=train_data, batch_size=batch_size, sequence_length=sequence_length
+    )
+    embed_dim = 64
+    hidden_dim = 32
+    cell = LSTMCell(embed_dim=embed_dim, hidden_dim=hidden_dim)
 
-# ```text
-# x_t:     [batch, n_embd]
-# h_(t-1): [batch, hidden_dim]
-# c_(t-1): [batch, hidden_dim]
-# ```
+    model = LSTM(
+        tokenizer=tokenizer, embed_dim=embed_dim, cell=cell, hidden_dim=hidden_dim
+    )
 
-# Outputs:
+    logits, (h_t, c_t) = model(x)
+    assert logits.shape == (batch_size, sequence_length, tokenizer.vocab_size)
+    assert h_t.shape == (batch_size, hidden_dim)
+    assert c_t.shape == (batch_size, hidden_dim)
 
-# ```text
-# h_t: [batch, hidden_dim]
-# c_t: [batch, hidden_dim]
-# ```
 
-# Test:
+def test_single_train_batch():
+    text = "abcdefghijklmnopqrstuvwxyzfsdfsdfsdfvsfsfsfvsvfsgsdvsvss"
+    tokenizer = CharTokenizer(text)
+    data = encode_data(text, tokenizer)
 
-# - Every gate shape.
-# - New hidden-state shape.
-# - New cell-state shape.
-# - Values from sigmoid gates lie between 0 and 1.
-# - Gradients reach the cell parameters.
+    train_data = get_splits(data)["train"]
+    batch_size = 5
+    sequence_length = 10
+    embed_dim = 64
+    hidden_dim = 32
+    cell = LSTMCell(embed_dim=embed_dim, hidden_dim=hidden_dim)
+
+    model = LSTM(
+        tokenizer=tokenizer, embed_dim=embed_dim, cell=cell, hidden_dim=hidden_dim
+    )
+
+    # get batch
+    x, y = get_batch(
+        split=train_data, batch_size=batch_size, sequence_length=sequence_length
+    )
+    #  run model
+    logits, _ = model(x)
+    #  calc cross entropy
+    #  logits have shape B,T,V
+    #  cross_entropy take N,C, which means we need to reshape to B*T, V
+    #  shape of targets is B,T, C.E take shape N so we reshape to B * T
+    loss = F.cross_entropy(logits.flatten(0, 1), y.flatten(0, 1))
+    #  call backward
+    loss.backward()
+    #  assert loss i scalar
+    assert loss.shape == ()
+    #  assert at least one model param has a gradient
+    for name, parameter in model.named_parameters():
+        assert parameter.grad is not None, name
+        assert torch.any(parameter.grad != 0), name
