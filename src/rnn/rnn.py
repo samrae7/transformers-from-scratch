@@ -50,21 +50,23 @@ class RNN(nn.Module):
         padding_char="\n",
         temperature: float = 1.0,
     ):
+        """Generate one continuation from one prompt (no batching)."""
         self.eval()
         if temperature <= 0:
             raise ValueError("temperature must be greater than 0")
         encoded = encode_data(prompt, tokenizer)
         # get final token
         logits, hidden = self(encoded.unsqueeze(0))
-        next_token = self._sample_next_token(logits, temperature=temperature)
-        generated_tokens = next_token
 
+        generated_tokens = []
         for _ in range(length):
+            next_token = self._sample_next_token(logits, temperature=temperature)
+            generated_tokens.append(next_token.item())
+
             next_token_input = next_token.unsqueeze(0)
             logits, hidden = self(next_token_input, hidden)
-            next_token = self._sample_next_token(logits, temperature=temperature)
-            generated_tokens = torch.cat((generated_tokens, next_token))
-        generated = tokenizer.decode(generated_tokens.tolist())
+
+        generated = tokenizer.decode(generated_tokens)
         return generated
 
     def _sample_next_token(
@@ -170,7 +172,7 @@ if __name__ == "__main__":
         train_data=train_data,
         batch_size=32,
         sequence_length=sequence_length,
-        max_iters=20000,
+        max_iters=200,
         optimizer=optimizer,
         validation_data=validation_data,
     )
