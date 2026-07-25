@@ -124,3 +124,17 @@ def test_single_train_batch():
     for name, parameter in model.named_parameters():
         assert parameter.grad is not None, name
         assert torch.any(parameter.grad != 0), name
+
+
+def test_generate():
+    text = "abcdefghijklmnopqrstuvwxyzfsdfsdfsdfvsfsfsfvs vfsgsdvsvsstobeornottobeT"
+    tokenizer = CharTokenizer(text)
+    embed_dim = 64
+    hidden_dim = 32
+    cell = LSTMCell(embed_dim=embed_dim, hidden_dim=hidden_dim)
+    model = LSTM(
+        tokenizer=tokenizer, embed_dim=embed_dim, cell=cell, hidden_dim=hidden_dim
+    )
+    result = model.generate("To be or not to be", 100)
+    assert len(result) == 100
+    assert isinstance(result, str)

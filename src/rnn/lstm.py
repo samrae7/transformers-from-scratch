@@ -46,14 +46,21 @@ class LSTM(nn.Module):
         )
         self.hidden_to_logits = nn.Linear(hidden_dim, tokenizer.vocab_size)
 
-    def forward(self, inputs: torch.Tensor):
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        state: tuple[torch.Tensor, torch.Tensor] | None = None,
+    ):
         #  inputs shape is B, T
         # cell takes B, E
         batch_size, sequence_length = inputs.shape
         embs = self.embeddings(inputs)
         # embs.new_zeros -> h_t,c_t have same device and d_type as embs
-        h_t = embs.new_zeros([batch_size, self.hidden_dim])
-        c_t = embs.new_zeros([batch_size, self.hidden_dim])
+        if state is None:
+            h_t = embs.new_zeros([batch_size, self.hidden_dim])
+            c_t = embs.new_zeros([batch_size, self.hidden_dim])
+        else:
+            h_t, c_t = state
         hidden_states = []
         for t in range(sequence_length):
             emb = embs[:, t, :]
@@ -65,6 +72,29 @@ class LSTM(nn.Module):
         hidden_states_stack = torch.stack(hidden_states, dim=1)
         logits = self.hidden_to_logits(hidden_states_stack)
         return logits, (h_t, c_t)
+
+    @torch.no_grad()
+    def generate(self, prompt: str, length: int, temperature: float = 1.0):
+        if temperature <= 0:
+            raise ValueError("Temperature must be greater than 0")
+        # get logits for prompt
+        encoded = encode_data(prompt, tokenizer=self.tokenizer)
+        inputs = encoded.unsqueeze(0)  # 1,T - no batching but need to match
+        # expected shape of model which is B,T
+        self.eval()
+        logits, state = self(inputs)  # logits: 1,T,V
+        generated_tokens = []
+        for _ in range(length):
+            final_logits = logits[:, -1, :]
+            probs = torch.softmax(final_logits / temperature, dim=-1)
+            next_token = torch.multinomial(probs[0], num_samples=1)
+            generated_tokens.append(next_token.item())
+
+            next_token_input = next_token.unsqueeze(0)
+            logits, state = self(next_token_input, state)
+        # convert list of tokens to str of characters
+
+        return self.tokenizer.decode(generated_tokens)
 
 
 def train(
@@ -132,14 +162,13 @@ if __name__ == "__main__":
         train_data=train_data,
         batch_size=32,
         sequence_length=sequence_length,
-        max_iters=2000,
+        max_iters=20000,
         optimizer=optimizer,
         # validation_data=validation_data,
     )
-    # generated = model.generate(
-    #     "Wherefore art thou Romeo?",
-    #     length=1000,
-    #     tokenizer=tokenizer,
-    #     temperature=0.8,
-    # )
-    # print(f"generated:\n{generated}")
+    generated = model.generate(
+        "JULIET:\nWherefore art thou Romeo?",
+        length=1000,
+        temperature=0.8,
+    )
+    print(f"generated:\n{generated}")
