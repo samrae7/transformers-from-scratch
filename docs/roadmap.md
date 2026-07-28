@@ -203,6 +203,8 @@ Completion signal:
 
 ## Milestone 4: Single-Head Causal Self-Attention
 
+Reference: [Single-Head Causal Self-Attention Plan](transformer/plan.md)
+
 Core idea:
 
 ```text
