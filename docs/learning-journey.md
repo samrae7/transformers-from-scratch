@@ -53,7 +53,7 @@ current work is, and what remains.
     - stateful generation by carrying hidden state forward
     - gradient clipping introduced
 
-    Status: Current
+    Status: Done
 
 
         |
@@ -63,14 +63,14 @@ current work is, and what remains.
 [4] RNN Gradients
     Backpropagation Through Time
 
-    Still to cover:
+    Learned:
     - gradient norms
     - exploding gradients
     - clipping as norm rescaling
     - sequence length comparisons
     - training with and without clipping
 
-    Status: Next
+    Status: Done
 
 
         |
@@ -80,7 +80,7 @@ current work is, and what remains.
 [5] LSTM
     gated recurrent memory
 
-    Still to cover:
+    Learned:
     - hidden state h_t
     - cell state c_t
     - forget gate
@@ -89,7 +89,7 @@ current work is, and what remains.
     - output gate
     - why the additive cell-state path helps memory and gradient flow
 
-    Status: Not started
+    Status: Done
 
 
         |
@@ -99,7 +99,7 @@ current work is, and what remains.
 [6] Single-Head Causal Self-Attention
     each token directly reads from previous tokens
 
-    Still to cover:
+    Currently covering:
     - positional embeddings
     - queries, keys, and values
     - attention scores: q @ k.T
@@ -107,7 +107,7 @@ current work is, and what remains.
     - causal masking
     - attention-weighted value sums
 
-    Status: Not started
+    Status: Current
 
 
         |
@@ -184,11 +184,13 @@ current work is, and what remains.
 The project is currently here:
 
 ```text
-Bigram -> Fixed-Context MLP -> Vanilla RNN -> RNN gradients and clipping
+Bigram -> Fixed-Context MLP -> Vanilla RNN -> RNN gradients -> LSTM
+    -> Single-Head Causal Self-Attention
 ```
 
-The next chapter is about understanding gradient behavior in recurrent
-networks before moving to LSTMs.
+The current chapter is about implementing single-head causal self-attention and
+understanding how it lets each token directly read from earlier token
+representations instead of compressing history into recurrent state.
 
 ## Why This Order
 
