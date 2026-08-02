@@ -1,6 +1,9 @@
 import torch
 
-from transformer.attention import TokenAndPositionEmbedding
+from transformer.attention import (
+    SingleHeadCausalSelfAttention,
+    TokenAndPositionEmbedding,
+)
 
 
 def test_token_and_position_embeddings_have_expected_shapes_and_encode_position():
@@ -35,3 +38,32 @@ def test_token_and_position_embeddings_have_expected_shapes_and_encode_position(
         token_embeddings + position_embeddings,
     )
     assert not torch.allclose(x[0, 0], x[0, 1])
+
+
+def test_singl_head_causal_self_attention():
+
+    batch_size = 2
+    sequence_length = 4
+    embed_dim = 8
+    head_dim = 4
+
+    attention = SingleHeadCausalSelfAttention(embed_dim=embed_dim, head_dim=head_dim)
+
+    x = torch.randn(batch_size, sequence_length, embed_dim)
+
+    q = attention.w_q(x)
+    k = attention.w_k(x)
+    v = attention.w_v(x)
+
+    assert q.shape == (batch_size, sequence_length, head_dim)
+    assert k.shape == (batch_size, sequence_length, head_dim)
+    assert v.shape == (batch_size, sequence_length, head_dim)
+
+    o = attention(x)
+    assert o.shape == (batch_size, sequence_length, head_dim)
+
+    o.sum().backward()
+
+    assert attention.w_q.weight.grad is not None
+    assert attention.w_k.weight.grad is not None
+    assert attention.w_v.weight.grad is not None

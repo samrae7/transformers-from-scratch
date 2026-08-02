@@ -12,3 +12,20 @@ class TokenAndPositionEmbedding(torch.nn.Module):
         sequence_length = idx.shape[1]
         positions = torch.arange(sequence_length, device=idx.device)
         return self.token_embeddings(idx) + self.position_embeddings(positions)
+
+
+class SingleHeadCausalSelfAttention(torch.nn.Module):
+    def __init__(self, embed_dim: int, head_dim: int):
+        super().__init__()
+        self.w_q = torch.nn.Linear(embed_dim, head_dim)
+        self.w_k = torch.nn.Linear(embed_dim, head_dim)
+        self.w_v = torch.nn.Linear(embed_dim, head_dim)
+
+    def forward(self, x: torch.Tensor):
+        q = self.w_q(x)
+        k = self.w_k(x)
+        v = self.w_v(x)
+        k_transposed = k.transpose(-2, -1)
+        a = q @ k_transposed
+        o = a @ v
+        return o
