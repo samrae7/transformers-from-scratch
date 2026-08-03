@@ -1,3 +1,5 @@
+import math
+
 import torch
 
 
@@ -17,15 +19,21 @@ class TokenAndPositionEmbedding(torch.nn.Module):
 class SingleHeadCausalSelfAttention(torch.nn.Module):
     def __init__(self, embed_dim: int, head_dim: int):
         super().__init__()
+        self.head_dim = head_dim
         self.w_q = torch.nn.Linear(embed_dim, head_dim)
         self.w_k = torch.nn.Linear(embed_dim, head_dim)
         self.w_v = torch.nn.Linear(embed_dim, head_dim)
+
+    def scaled_dot_product(self, q: torch.Tensor, k: torch.Tensor):
+        k_transposed = k.transpose(-2, -1)
+        a = q @ k_transposed
+        scaled_scores = a / math.sqrt(self.head_dim)
+        return scaled_scores
 
     def forward(self, x: torch.Tensor):
         q = self.w_q(x)
         k = self.w_k(x)
         v = self.w_v(x)
-        k_transposed = k.transpose(-2, -1)
-        a = q @ k_transposed
-        o = a @ v
+        scaled_scores = self.scaled_dot_product(q, k)
+        o = scaled_scores @ v
         return o

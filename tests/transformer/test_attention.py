@@ -40,7 +40,7 @@ def test_token_and_position_embeddings_have_expected_shapes_and_encode_position(
     assert not torch.allclose(x[0, 0], x[0, 1])
 
 
-def test_singl_head_causal_self_attention():
+def test_single_head_causal_self_attention():
 
     batch_size = 2
     sequence_length = 4
@@ -67,3 +67,35 @@ def test_singl_head_causal_self_attention():
     assert attention.w_q.weight.grad is not None
     assert attention.w_k.weight.grad is not None
     assert attention.w_v.weight.grad is not None
+
+
+def test_scaled_dot_product_scores():
+    head_dim = 4
+    attention = SingleHeadCausalSelfAttention(
+        embed_dim=8,
+        head_dim=head_dim,
+    )
+
+    q = torch.ones(1, 2, 4)
+    k = torch.tensor(
+        [
+            [
+                [1.0, 1.0, 1.0, 1.0],
+                [2.0, 2.0, 2.0, 2.0],
+            ]
+        ]
+    )
+
+    scores = attention.scaled_dot_product(q, k)
+
+    expected = torch.tensor(
+        [
+            [
+                [2.0, 4.0],
+                [2.0, 4.0],
+            ]
+        ]
+    )
+
+    assert scores.shape == (1, 2, 2)
+    assert torch.allclose(scores, expected)
