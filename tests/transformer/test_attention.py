@@ -99,3 +99,53 @@ def test_scaled_dot_product_scores():
 
     assert scores.shape == (1, 2, 2)
     assert torch.allclose(scores, expected)
+
+
+def test_apply_causal_mask():
+    attention = SingleHeadCausalSelfAttention(
+        embed_dim=8,
+        head_dim=4,
+    )
+    scores = torch.tensor(
+        [
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+            ]
+        ]
+    )
+    expected = torch.tensor(
+        [
+            [
+                [1.0, -float("inf"), -float("inf")],
+                [4.0, 5.0, -float("inf")],
+                [7.0, 8.0, 9.0],
+            ]
+        ]
+    )
+    masked_scores = attention.apply_causal_mask(scores)
+    assert masked_scores.shape == (1, 3, 3)
+    assert torch.equal(masked_scores, expected)
+
+
+def test_attention_weights():
+    attention = SingleHeadCausalSelfAttention(
+        embed_dim=8,
+        head_dim=4,
+    )
+    sequence_length = 3
+    weights = attention.attention_weights(
+        torch.randn(1, sequence_length, 4), torch.randn(1, sequence_length, 4)
+    )
+    assert weights.shape == (1, sequence_length, sequence_length)
+
+    positions = torch.arange(sequence_length)
+    future_mask = positions[None, :] > positions[:, None]
+    assert torch.all(weights[0][future_mask] == 0)
+
+    row_sums = weights.sum(dim=-1)
+    assert torch.allclose(
+        row_sums,
+        torch.ones_like(row_sums),
+    )
