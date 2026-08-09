@@ -60,7 +60,7 @@ def test_single_head_causal_self_attention():
     assert v.shape == (batch_size, sequence_length, head_dim)
 
     o = attention(x)
-    assert o.shape == (batch_size, sequence_length, head_dim)
+    assert o.shape == (batch_size, sequence_length, embed_dim)
 
     o.sum().backward()
 

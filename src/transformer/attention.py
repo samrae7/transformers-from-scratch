@@ -23,6 +23,7 @@ class SingleHeadCausalSelfAttention(torch.nn.Module):
         self.w_q = torch.nn.Linear(embed_dim, head_dim)
         self.w_k = torch.nn.Linear(embed_dim, head_dim)
         self.w_v = torch.nn.Linear(embed_dim, head_dim)
+        self.out_proj = torch.nn.Linear(head_dim, embed_dim)
 
     def scaled_dot_product(self, q: torch.Tensor, k: torch.Tensor):
         k_transposed = k.transpose(-2, -1)
@@ -51,4 +52,4 @@ class SingleHeadCausalSelfAttention(torch.nn.Module):
         v = self.w_v(x)
         attention_weights = self.attention_weights(q, k)
         o = attention_weights @ v
-        return o
+        return self.out_proj(o)
