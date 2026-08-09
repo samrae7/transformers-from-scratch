@@ -1,6 +1,6 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 from language_modeling.data import encode_data, get_corpus_text, get_splits
 from language_modeling.tokenizer import CharTokenizer
