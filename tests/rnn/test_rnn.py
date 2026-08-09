@@ -1,10 +1,10 @@
 import torch
+import torch.nn.functional as F
 
 from language_modeling.data import encode_data, get_splits
 from language_modeling.tokenizer import CharTokenizer
 from rnn.data import get_batch
 from rnn.rnn import RNN
-import torch.nn.functional as F
 
 
 def test_rnn_logits():
