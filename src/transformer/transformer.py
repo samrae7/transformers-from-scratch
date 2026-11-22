@@ -5,11 +5,11 @@ from torch.nn import functional as F
 from language_modeling.data import encode_data, get_corpus_text, get_splits
 from language_modeling.tokenizer import CharTokenizer
 from rnn.data import get_batch
-from transformer.attention import (
-    SingleHeadCausalSelfAttention,
+from transformer.ff_mlp import FFMLP
+from transformer.multi_head_attention import MultiHeadAttention
+from transformer.single_head_attention import (
     TokenAndPositionEmbedding,
 )
-from transformer.ff_mlp import FFMLP
 
 
 def plot_loss(val_losses, train_losses):
@@ -42,11 +42,12 @@ def get_avg_val_loss(validation_data: torch.Tensor, iters: int, model: nn.Module
     return avg_val_loss
 
 
-class SingleHeadTransformer(nn.Module):
+class Transformer(nn.Module):
     def __init__(
         self,
         embed_dim: int,
         head_dim: int,
+        num_heads: int,
         tokenizer: CharTokenizer,
         max_sequence_length: int,
     ):
@@ -58,8 +59,8 @@ class SingleHeadTransformer(nn.Module):
             embed_dim=embed_dim,
             max_sequence_length=max_sequence_length,
         )
-        self.attention = SingleHeadCausalSelfAttention(
-            embed_dim=embed_dim, head_dim=head_dim
+        self.attention = MultiHeadAttention(
+            embed_dim=embed_dim, head_dim=head_dim, num_heads=num_heads
         )
 
         self.mlp = FFMLP(embed_dim=embed_dim)
@@ -93,7 +94,7 @@ class SingleHeadTransformer(nn.Module):
 
 
 def train(
-    model: SingleHeadTransformer,
+    model: Transformer,
     train_data: torch.Tensor,
     validation_data: torch.Tensor,
     batch_size: int,
@@ -152,14 +153,16 @@ if __name__ == "__main__":
     # call train
     embed_dim = 32
     head_dim = 128
+    num_heads = 4
     batch_size = 32
     sequence_length = 64
     lr = 0.001
     max_iters = 20_000
 
-    model = SingleHeadTransformer(
+    model = Transformer(
         embed_dim=embed_dim,
         head_dim=head_dim,
+        num_heads=4,
         tokenizer=tokenizer,
         max_sequence_length=sequence_length,
     )

@@ -1,6 +1,6 @@
 import torch
 
-from transformer.attention import (
+from transformer.single_head_attention import (
     SingleHeadCausalSelfAttention,
     TokenAndPositionEmbedding,
 )
@@ -60,7 +60,7 @@ def test_single_head_causal_self_attention():
     assert v.shape == (batch_size, sequence_length, head_dim)
 
     o = attention(x)
-    assert o.shape == (batch_size, sequence_length, embed_dim)
+    assert o.shape == (batch_size, sequence_length, head_dim)
 
     o.sum().backward()
 
